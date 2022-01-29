@@ -98,9 +98,9 @@ class SmartStrip(SmartDevice):
             for plug in self.children:
                 await plug.update()
 
-    def update_from_discovery_info(self, info):
+    def update_from_discovery_info(self, info, host):
         """Update state from info from the discover call."""
-        super().update_from_discovery_info(info)
+        super().update_from_discovery_info(info, host)
         self._create_children()
 
     @requires_update

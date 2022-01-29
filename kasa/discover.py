@@ -86,11 +86,8 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 
         self.discovered_devices[ip] = device
 
-        if device is not None:
-            if self.on_discovered is not None:
-                asyncio.ensure_future(self.on_discovered(device))
-        else:
-            _LOGGER.error("Received invalid response: %s", info)
+        if self.on_discovered is not None:
+            asyncio.ensure_future(self.on_discovered(device))
 
     def error_received(self, ex):
         """Handle asyncio.Protocol errors."""
@@ -240,7 +237,10 @@ class Discover:
     @staticmethod
     def _create_device_from_discovery_info(ip, info: dict) -> SmartDevice:
         """Create a SmartDevice for device described by passed data."""
-        device_class = Discover._get_device_class(info)
-        device = device_class(ip)
-        device.update_from_discovery_info(info)
+        device = SmartDevice.find_device_by_info(info)
+        if device is None:
+            device_class = Discover._get_device_class(info)
+            device = device_class(ip)
+
+        device.update_from_discovery_info(info, ip)
         return device

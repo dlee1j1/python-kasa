@@ -90,6 +90,25 @@ def requires_update(f):
     return wrapped
 
 
+class DeviceRegistry:
+    """Registry to track devices."""
+
+    def __init__(self) -> None:
+        """Initialize registry."""
+        self._registry: Dict[str, "SmartDevice"] = {}
+
+    def find_by_info(self, info: Dict) -> Optional["SmartDevice"]:
+        """Locates a device given the hardware ID of the device"""
+        sys_info = info.get("sys_info")
+        if sys_info is None:
+            return None
+        device_id = sys_info.get("mac", sys_info.get("mic_mac"))
+        return self._registry.get(device_id)
+
+    def register_device(self, dev: "SmartDevice") -> None:
+        self._registry[dev.device_id] = dev
+
+
 class SmartDevice:
     """Base class for all supported device types.
 
@@ -186,6 +205,8 @@ class SmartDevice:
     """
 
     TIME_SERVICE = "time"
+
+    _registry = DeviceRegistry()
 
     def __init__(self, host: str) -> None:
         """Create a new SmartDevice instance.
@@ -301,11 +322,23 @@ class SmartDevice:
 
         self._last_update = await self.protocol.query(req)
         self._sys_info = self._last_update["system"]["get_sysinfo"]
+        SmartDevice.register_device(self)
 
-    def update_from_discovery_info(self, info):
+    def update_from_discovery_info(self, info, host):
         """Update state from info from the discover call."""
-        self._last_update = info
+        if self._last_update is None:
+            self._last_update = info
+        self.host = host
         self._sys_info = info["system"]["get_sysinfo"]
+        SmartDevice.register_device(self)
+
+    @classmethod
+    def find_device_by_info(cls,info: Dict) -> Optional["SmartDevice"]:
+        return cls._registry.find_by_info(info)
+
+    @classmethod
+    def register_device(cls, dev: "SmartDevice") -> None:
+        cls._registry.register_device(dev)
 
     @property  # type: ignore
     @requires_update
@@ -326,6 +359,12 @@ class SmartDevice:
         """Return device name (alias)."""
         sys_info = self.sys_info
         return str(sys_info["alias"])
+
+    @property
+    @requires_update
+    def hwId(self) -> str:
+        """Return hardware ID."""
+        return self.sys_info["hwId"]
 
     async def set_alias(self, alias: str) -> None:
         """Set the device name (alias)."""
