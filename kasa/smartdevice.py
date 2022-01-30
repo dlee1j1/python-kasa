@@ -98,7 +98,7 @@ class DeviceRegistry:
         self._registry: Dict[str, "SmartDevice"] = {}
 
     def find_by_info(self, info: Dict) -> Optional["SmartDevice"]:
-        """Locates a device given the hardware ID of the device"""
+        """Locates a device given the hardware ID of the device."""
         sys_info = info.get("sys_info")
         if sys_info is None:
             return None
@@ -106,6 +106,7 @@ class DeviceRegistry:
         return self._registry.get(device_id)
 
     def register_device(self, dev: "SmartDevice") -> None:
+        """Register the device so we can find it during discovery."""
         self._registry[dev.device_id] = dev
 
 
@@ -333,11 +334,13 @@ class SmartDevice:
         SmartDevice.register_device(self)
 
     @classmethod
-    def find_device_by_info(cls,info: Dict) -> Optional["SmartDevice"]:
+    def find_device_by_info(cls, info: Dict) -> Optional["SmartDevice"]:
+        """Find the device given the info packet."""
         return cls._registry.find_by_info(info)
 
     @classmethod
     def register_device(cls, dev: "SmartDevice") -> None:
+        """Register the device."""
         cls._registry.register_device(dev)
 
     @property  # type: ignore
@@ -359,12 +362,6 @@ class SmartDevice:
         """Return device name (alias)."""
         sys_info = self.sys_info
         return str(sys_info["alias"])
-
-    @property
-    @requires_update
-    def hwId(self) -> str:
-        """Return hardware ID."""
-        return self.sys_info["hwId"]
 
     async def set_alias(self, alias: str) -> None:
         """Set the device name (alias)."""
