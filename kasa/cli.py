@@ -1,4 +1,5 @@
 """python-kasa cli tool."""
+from asyncio import sleep
 import logging
 from pprint import pformat as pf
 from typing import cast
@@ -217,49 +218,54 @@ async def sysinfo(dev):
 @cli.command()
 @pass_dev
 @click.pass_context
-async def state(ctx, dev: SmartDevice):
+@click.option("--repeat",type=int, default=1)
+@click.option("--wait",type=int, default=1)
+async def state(ctx, dev: SmartDevice, repeat, wait):
     """Print out device state and versions."""
-    click.echo(click.style(f"== {dev.alias} - {dev.model} ==", bold=True))
-    click.echo(f"\tHost: {dev.host}")
-    click.echo(
-        click.style(
-            "\tDevice state: {}\n".format("ON" if dev.is_on else "OFF"),
-            fg="green" if dev.is_on else "red",
-        )
-    )
-    if dev.is_strip:
-        click.echo(click.style("\t== Plugs ==", bold=True))
-        for plug in dev.children:  # type: ignore
-            is_on = plug.is_on
-            alias = plug.alias
-            click.echo(
-                click.style(
-                    "\t* Socket '{}' state: {} on_since: {}".format(
-                        alias, ("ON" if is_on else "OFF"), plug.on_since
-                    ),
-                    fg="green" if is_on else "red",
-                )
+    for _ in range(repeat):
+        click.echo(click.style(f"== {dev.alias} - {dev.model} ==", bold=True))
+        click.echo(f"\tHost: {dev.host}")
+        click.echo(
+            click.style(
+                "\tDevice state: {}\n".format("ON" if dev.is_on else "OFF"),
+                fg="green" if dev.is_on else "red",
             )
+        )
+        if dev.is_strip:
+            click.echo(click.style("\t== Plugs ==", bold=True))
+            for plug in dev.children:  # type: ignore
+                is_on = plug.is_on
+                alias = plug.alias
+                click.echo(
+                    click.style(
+                        "\t* Socket '{}' state: {} on_since: {}".format(
+                            alias, ("ON" if is_on else "OFF"), plug.on_since
+                        ),
+                        fg="green" if is_on else "red",
+                    )
+                )
+            click.echo()
+
+        click.echo(click.style("\t== Generic information ==", bold=True))
+        click.echo(f"\tTime:         {await dev.get_time()}")
+        click.echo(f"\tHardware:     {dev.hw_info['hw_ver']}")
+        click.echo(f"\tSoftware:     {dev.hw_info['sw_ver']}")
+        click.echo(f"\tMAC (rssi):   {dev.mac} ({dev.rssi})")
+        click.echo(f"\tLocation:     {dev.location}")
+
+        click.echo(click.style("\n\t== Device specific information ==", bold=True))
+        for k, v in dev.state_information.items():
+            click.echo(f"\t{k}: {v}")
         click.echo()
 
-    click.echo(click.style("\t== Generic information ==", bold=True))
-    click.echo(f"\tTime:         {await dev.get_time()}")
-    click.echo(f"\tHardware:     {dev.hw_info['hw_ver']}")
-    click.echo(f"\tSoftware:     {dev.hw_info['sw_ver']}")
-    click.echo(f"\tMAC (rssi):   {dev.mac} ({dev.rssi})")
-    click.echo(f"\tLocation:     {dev.location}")
-
-    click.echo(click.style("\n\t== Device specific information ==", bold=True))
-    for k, v in dev.state_information.items():
-        click.echo(f"\t{k}: {v}")
-    click.echo()
-
-    if dev.has_emeter:
-        click.echo(click.style("\n\t== Current State ==", bold=True))
-        emeter_status = dev.emeter_realtime
-        click.echo(f"\t{emeter_status}")
-
-
+        if dev.has_emeter:
+            click.echo(click.style("\n\t== Current State ==", bold=True))
+            emeter_status = dev.emeter_realtime
+            click.echo(f"\t{emeter_status}")
+ 
+        await sleep(wait)
+        await Discover.discover()
+        
 @cli.command()
 @pass_dev
 @click.argument("new_alias", required=False, default=None)

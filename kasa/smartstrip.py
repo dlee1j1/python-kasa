@@ -349,10 +349,17 @@ class SmartStripPlug(SmartPlug):
         sys_info = self.parent.sys_info
         return f"Socket for {sys_info['model']}"
 
+
     def _get_child_info(self) -> Dict:
         """Return the subdevice information for this device."""
+        def _normalize(child_id):
+            if len(child_id) < 3:
+               return self.parent.sys_info["deviceId"] + child_id
+            else:
+                return child_id
+      
         for plug in self.parent.sys_info["children"]:
-            if plug["id"] == self.child_id:
+            if _normalize(plug["id"]) == _normalize(self.child_id):
                 return plug
 
         raise SmartDeviceException(f"Unable to find children {self.child_id}")

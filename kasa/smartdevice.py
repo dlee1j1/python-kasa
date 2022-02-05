@@ -99,7 +99,7 @@ class DeviceRegistry:
 
     def find_by_info(self, info: Dict) -> Optional["SmartDevice"]:
         """Locates a device given the hardware ID of the device."""
-        sys_info = info.get("sys_info")
+        sys_info = info["system"].get("get_sysinfo")
         if sys_info is None:
             return None
         device_id = sys_info.get("mac", sys_info.get("mic_mac"))
