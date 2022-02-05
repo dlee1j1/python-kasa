@@ -241,6 +241,8 @@ class SmartDevice:
         """Raise an exception if there is no emeter."""
         if not self.has_emeter:
             raise SmartDeviceException("Device has no emeter")
+        if self.emeter_type not in self._last_update:
+            raise SmartDeviceException("update() required prior accessing emeter")
 
     async def _query_helper(
         self, target: str, cmd: str, arg: Optional[Dict] = None, child_ids=None
@@ -634,7 +636,7 @@ class SmartDevice:
 
         on_time = self.sys_info["on_time"]
 
-        return datetime.now() - timedelta(seconds=on_time)
+        return datetime.now().replace(microsecond=0) - timedelta(seconds=on_time)
 
     @property  # type: ignore
     @requires_update
